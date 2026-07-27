@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+beautifulsoup4
+yt-dlp
+google-genai
+edge-tts
+ffmpeg-python
+pydantic
+python-dotenv
+python-multipart

@@ -1,0 +1,32 @@
+# Python & Virtual environments
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc
+.env
+*.env
+
+
+# Node & Frontend
+node_modules/
+dist/
+.vite/
+
+# Application Data & Large Executables
+data/
+backend/data/
+backend/models/
+backend/bin/
+*.mp3
+*.mp4
+*.exe
+*.zip
+*.tar.gz
+error_log.txt
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
