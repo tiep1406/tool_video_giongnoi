@@ -31,6 +31,7 @@ function App() {
   // TTS Studio State
   const [ttsMode, setTtsMode] = useState('standard'); // 'standard' | 'clone'
   const [voices, setVoices] = useState(DEFAULT_VOICES);
+  const [voiceSearch, setVoiceSearch] = useState('');
   const [ttsText, setTtsText] = useState('Chào mừng quý vị và các bạn đã đến với công cụ chuyển đổi văn bản thành giọng nói AI.');
   const [ttsVoice, setTtsVoice] = useState('vi-VN-HoaiMyNeural');
   const [ttsRate, setTtsRate] = useState('+0%');
@@ -67,6 +68,12 @@ function App() {
     fetchHistory();
     fetchVoices();
   }, []);
+
+  const filteredVoices = voices.filter(v => 
+    v.name.toLowerCase().includes(voiceSearch.toLowerCase()) || 
+    v.id.toLowerCase().includes(voiceSearch.toLowerCase()) ||
+    v.lang.toLowerCase().includes(voiceSearch.toLowerCase())
+  );
 
   const loadSession = async (session_id) => {
     try {
@@ -281,7 +288,7 @@ function App() {
           {
             id: data.file_id,
             text: ttsText.length > 50 ? ttsText.substring(0, 50) + '...' : ttsText,
-            voiceName: `🎭 Nhái Giọng (${genderLabel} - ${sampleFile.name})`,
+            voiceName: `🤖 OmniVoice (${genderLabel} - ${sampleFile.name})`,
             audioUrl: data.audio_url,
             time: new Date().toLocaleTimeString('vi-VN')
           },
@@ -301,7 +308,7 @@ function App() {
         <h1 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem', background: '-webkit-linear-gradient(#fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           AI Video & Text-to-Speech Studio
         </h1>
-        <p style={{ color: 'var(--text-muted)' }}>Tự động hóa luồng sản xuất video & tạo giọng nói AI tức thời (Portable 100%)</p>
+        <p style={{ color: 'var(--text-muted)' }}>Tự động hóa luồng sản xuất video & thư viện 300+ giọng nói AI tức thời (Portable 100%)</p>
       </header>
 
       {/* Nav Tabs */}
@@ -316,7 +323,7 @@ function App() {
           className={`tab-btn ${activeTab === 'tts' ? 'active' : ''}`}
           onClick={() => setActiveTab('tts')}
         >
-          🎙️ Studio Giọng Nói (TTS & Voice Cloning)
+          🎙️ Studio Giọng Nói ({voices.length}+ Giọng)
         </button>
       </nav>
 
@@ -375,7 +382,7 @@ function App() {
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>🎙️ Chọn Giọng Đọc Video</label>
               <select value={videoVoice} onChange={e => setVideoVoice(e.target.value)}>
-                {voices.map(v => (
+                {filteredVoices.map(v => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </select>
@@ -483,7 +490,7 @@ function App() {
           <div className="glass-panel" style={{ padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🎙️ Studio Giọng Nói & Voice Cloning
+                🎙️ Studio Giọng Nói ({voices.length}+ Giọng AI)
               </h2>
 
               {/* Mode Selector */}
@@ -492,13 +499,13 @@ function App() {
                   className={`chip-btn ${ttsMode === 'standard' ? 'selected' : ''}`}
                   onClick={() => setTtsMode('standard')}
                 >
-                  🎙️ Giọng AI Chuẩn
+                  🎙️ Thư Viện {voices.length}+ Giọng AI
                 </button>
                 <button 
                   className={`chip-btn ${ttsMode === 'clone' ? 'selected' : ''}`}
                   onClick={() => setTtsMode('clone')}
                 >
-                  🎭 Nhái Giọng (File MP3 Mẫu)
+                  🤖 OmniVoice Nhái Giọng
                 </button>
               </div>
             </div>
@@ -529,7 +536,7 @@ function App() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ttsText.length} ký tự</span>
                   </div>
                   <textarea 
-                    rows="5" 
+                    rows="4" 
                     placeholder="Nhập hoặc dán văn bản bạn muốn chuyển đổi sang giọng nói..."
                     value={ttsText}
                     onChange={e => setTtsText(e.target.value)}
@@ -537,11 +544,20 @@ function App() {
                   />
                 </div>
 
-                {/* Select Voice */}
+                {/* Select Voice with Search */}
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Chọn Giọng Đọc</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <label style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>🌐 Chọn Giọng Đọc ({filteredVoices.length} / {voices.length} giọng)</label>
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="🔍 Gõ để tìm giọng (vd: vi, nam, nu, ava, us, uk, ja)..." 
+                    value={voiceSearch} 
+                    onChange={e => setVoiceSearch(e.target.value)}
+                    style={{ marginBottom: '0.5rem', padding: '8px 12px', fontSize: '0.85rem' }}
+                  />
                   <select value={ttsVoice} onChange={e => setTtsVoice(e.target.value)} style={{ padding: '10px' }}>
-                    {voices.map(v => (
+                    {filteredVoices.map(v => (
                       <option key={v.id} value={v.id}>{v.name}</option>
                     ))}
                   </select>
@@ -606,7 +622,7 @@ function App() {
               <>
                 <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: '#38bdf8', fontWeight: '600', fontSize: '0.9rem' }}>
-                    1. Upload File MP3 / WAV Giọng Đọc Mẫu (5 - 15 Giây)
+                    1. Upload File MP3 / WAV Giọng Đọc Mẫu (3 - 25 Giây)
                   </label>
                   <input type="file" accept="audio/*" onChange={handleSampleFileChange} style={{ marginBottom: '0.5rem' }} />
                   {sampleFileUrl && (
@@ -657,7 +673,7 @@ function App() {
                   onClick={handleTTSClone}
                   disabled={ttsIsProcessing || !ttsText.trim() || !sampleFile}
                 >
-                  {ttsIsProcessing ? '🎭 AI Đang Phân Tích & Nhái Giọng...' : '🎭 Nhái Giọng & Tạo Âm Thanh'}
+                  {ttsIsProcessing ? '🤖 OmniVoice AI Đang Nhái Giọng...' : '🤖 OmniVoice Nhái Giọng & Tạo Âm Thanh'}
                 </button>
               </>
             )}

@@ -35,8 +35,10 @@ def read_root():
 
 @app.get("/api/tts/voices")
 async def get_tts_voices():
-    from services.tts import get_available_voices
-    return {"status": "success", "voices": get_available_voices()}
+    from services.tts import fetch_all_voices
+    voices = await fetch_all_voices()
+    return {"status": "success", "voices": voices, "total": len(voices)}
+
 
 @app.post("/api/tts/generate")
 async def generate_tts(request: TTSRequest):
