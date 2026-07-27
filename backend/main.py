@@ -25,6 +25,10 @@ class TTSRequest(BaseModel):
     rate: str = "+0%"
     pitch: str = "+0Hz"
 
+class PresetTTSRequest(BaseModel):
+    preset_id: str
+    text: str
+
 import uuid
 from services.crawler import extract_content
 from services.llm import generate_storyboard
@@ -38,6 +42,35 @@ async def get_tts_voices():
     from services.tts import fetch_all_voices
     voices = await fetch_all_voices()
     return {"status": "success", "voices": voices, "total": len(voices)}
+
+@app.get("/api/tts/presets")
+def get_tts_presets():
+    from services.tts_presets import get_vietnamese_presets
+    return {"status": "success", "presets": get_vietnamese_presets()}
+
+@app.post("/api/tts/generate_preset")
+async def generate_preset_tts(request: PresetTTSRequest):
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Văn bản không được để trống")
+        
+    tts_dir = os.path.join("..", "data", "tts")
+    os.makedirs(tts_dir, exist_ok=True)
+    
+    file_id = str(uuid.uuid4())
+    output_path = os.path.join(tts_dir, f"{file_id}.mp3")
+    
+    from services.tts_presets import generate_preset_audio
+    try:
+        await generate_preset_audio(request.preset_id, request.text, output_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi sinh giọng mẫu: {str(e)}")
+        
+    return {
+        "status": "success",
+        "audio_url": f"http://localhost:8000/data/tts/{file_id}.mp3",
+        "file_id": file_id
+    }
+
 
 
 @app.post("/api/tts/generate")

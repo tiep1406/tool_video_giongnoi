@@ -29,8 +29,10 @@ function App() {
   const [historyList, setHistoryList] = useState([]);
 
   // TTS Studio State
-  const [ttsMode, setTtsMode] = useState('standard'); // 'standard' | 'clone'
+  const [ttsMode, setTtsMode] = useState('preset'); // 'preset' | 'standard' | 'clone'
   const [voices, setVoices] = useState(DEFAULT_VOICES);
+  const [presets, setPresets] = useState([]);
+  const [selectedPresetId, setSelectedPresetId] = useState('preset_nam_review_phim');
   const [voiceSearch, setVoiceSearch] = useState('');
   const [ttsText, setTtsText] = useState('Chào mừng quý vị và các bạn đã đến với công cụ chuyển đổi văn bản thành giọng nói AI.');
   const [ttsVoice, setTtsVoice] = useState('vi-VN-HoaiMyNeural');
@@ -65,9 +67,20 @@ function App() {
     } catch (e) {}
   };
 
+  const fetchPresets = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/api/tts/presets');
+      if (res.ok) {
+        const data = await res.json();
+        setPresets(data.presets || []);
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchHistory();
     fetchVoices();
+    fetchPresets();
   }, []);
 
   const handleApiKeyChange = (e) => {
@@ -219,6 +232,46 @@ function App() {
     }
   };
 
+  const handlePresetGenerate = async () => {
+    if (!ttsText.trim()) {
+      alert("Vui lòng nhập văn bản cần chuyển đổi!");
+      return;
+    }
+    setTtsIsProcessing(true);
+    setTtsAudioUrl(null);
+    try {
+      const response = await fetch('http://localhost:8000/api/tts/generate_preset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preset_id: selectedPresetId,
+          text: ttsText
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        alert("Lỗi sinh giọng: " + (data.detail || "Không thể tạo giọng đọc"));
+      } else {
+        setTtsAudioUrl(data.audio_url);
+        const pObj = presets.find(p => p.id === selectedPresetId);
+        setTtsHistory(prev => [
+          {
+            id: data.file_id,
+            text: ttsText.length > 50 ? ttsText.substring(0, 50) + '...' : ttsText,
+            voiceName: pObj ? pObj.name : selectedPresetId,
+            audioUrl: data.audio_url,
+            time: new Date().toLocaleTimeString('vi-VN')
+          },
+          ...prev
+        ]);
+      }
+    } catch (err) {
+      alert("Lỗi kết nối máy chủ.");
+    }
+    setTtsIsProcessing(false);
+  };
+
   const handleTTSGenerate = async () => {
     if (!ttsText.trim()) {
       alert("Vui lòng nhập văn bản cần chuyển đổi!");
@@ -331,7 +384,7 @@ function App() {
           className={`tab-btn ${activeTab === 'tts' ? 'active' : ''}`}
           onClick={() => setActiveTab('tts')}
         >
-          🎙️ Studio Giọng Nói ({voices.length}+ Giọng)
+          🎙️ Studio Giọng Nói Tiếng Việt & Đa Ngôn Ngữ
         </button>
       </nav>
 
@@ -497,26 +550,90 @@ function App() {
           {/* TTS Form */}
           <div className="glass-panel" style={{ padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🎙️ Studio Giọng Nói ({voices.length}+ Giọng AI)
+              <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🎙️ Studio Giọng Nói AI
               </h2>
 
               {/* Mode Selector */}
               <div className="option-group">
                 <button 
+                  className={`chip-btn ${ttsMode === 'preset' ? 'selected' : ''}`}
+                  onClick={() => setTtsMode('preset')}
+                >
+                  🇻🇳 8+ Mẫu Giọng Tiếng Việt
+                </button>
+                <button 
                   className={`chip-btn ${ttsMode === 'standard' ? 'selected' : ''}`}
                   onClick={() => setTtsMode('standard')}
                 >
-                  🎙️ Thư Viện {voices.length}+ Giọng AI
+                  🌐 Thư Viện {voices.length}+ Giọng
                 </button>
                 <button 
                   className={`chip-btn ${ttsMode === 'clone' ? 'selected' : ''}`}
                   onClick={() => setTtsMode('clone')}
                 >
-                  🎭 Nhái Giọng (File MP3 Mẫu)
+                  🎭 Nhái Giọng MP3
                 </button>
               </div>
             </div>
+
+            {/* Mode 0: Vietnamese Presets (Review Phim, Thời Sự, TikTok, Truyện...) */}
+            {ttsMode === 'preset' && (
+              <>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#38bdf8', fontWeight: '600', fontSize: '0.9rem' }}>
+                    1. Chọn Mẫu Phong Cách Giọng Đọc Tiếng Việt
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    {presets.map(p => (
+                      <div 
+                        key={p.id}
+                        onClick={() => setSelectedPresetId(p.id)}
+                        style={{
+                          padding: '0.85rem',
+                          borderRadius: '8px',
+                          border: selectedPresetId === p.id ? '2px solid #38bdf8' : '1px solid var(--border-color)',
+                          background: selectedPresetId === p.id ? 'rgba(56, 189, 248, 0.15)' : 'rgba(0,0,0,0.2)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '4px', color: '#f8fafc' }}>
+                          {p.name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                          {p.description}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Input Text */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <label style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>2. Văn bản tiếng Việt cần đọc</label>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ttsText.length} ký tự</span>
+                  </div>
+                  <textarea 
+                    rows="4" 
+                    placeholder="Nhập văn bản tiếng Việt bạn muốn tạo giọng đọc..."
+                    value={ttsText}
+                    onChange={e => setTtsText(e.target.value)}
+                    style={{ fontSize: '1rem', lineHeight: '1.6' }}
+                  />
+                </div>
+
+                <button 
+                  className="btn-primary" 
+                  style={{ width: '100%', padding: '14px', fontSize: '1.05rem', fontWeight: '600', background: '#0284c7', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}
+                  onClick={handlePresetGenerate}
+                  disabled={ttsIsProcessing || !ttsText.trim()}
+                >
+                  {ttsIsProcessing ? '⚡ Đang Tạo Giọng Đọc Mẫu Tiếng Việt...' : '🇻🇳 Tạo Giọng Đọc Tiếng Việt Ngay'}
+                </button>
+              </>
+            )}
 
             {/* Mode 1: Standard TTS */}
             {ttsMode === 'standard' && (
@@ -651,7 +768,6 @@ function App() {
                     style={{ padding: '6px 10px', fontSize: '0.8rem' }}
                   />
                 </div>
-
 
                 <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: '#38bdf8', fontWeight: '600', fontSize: '0.9rem' }}>
