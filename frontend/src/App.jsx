@@ -40,6 +40,7 @@ function App() {
   const [sampleFileUrl, setSampleFileUrl] = useState(null);
   const [sampleLanguage, setSampleLanguage] = useState('vi');
   const [sampleGender, setSampleGender] = useState('auto'); // 'auto' | 'male' | 'female'
+  const [elevenLabsApiKey, setElevenLabsApiKey] = useState(() => localStorage.getItem('elevenlabs_api_key') || '');
   const [ttsIsProcessing, setTtsIsProcessing] = useState(false);
   const [ttsAudioUrl, setTtsAudioUrl] = useState(null);
   const [ttsHistory, setTtsHistory] = useState([]);
@@ -68,6 +69,12 @@ function App() {
     fetchHistory();
     fetchVoices();
   }, []);
+
+  const handleApiKeyChange = (e) => {
+    const val = e.target.value;
+    setElevenLabsApiKey(val);
+    localStorage.setItem('elevenlabs_api_key', val);
+  };
 
   const filteredVoices = voices.filter(v => 
     v.name.toLowerCase().includes(voiceSearch.toLowerCase()) || 
@@ -270,6 +277,7 @@ function App() {
     formData.append('text', ttsText);
     formData.append('language', sampleLanguage);
     formData.append('gender', sampleGender);
+    formData.append('api_key', elevenLabsApiKey);
     formData.append('sample_file', sampleFile);
 
     try {
@@ -283,12 +291,12 @@ function App() {
         alert("Lỗi nhái giọng: " + (data.detail || "Không thể sinh giọng nhái"));
       } else {
         setTtsAudioUrl(data.audio_url);
-        const genderLabel = sampleGender === 'male' ? '👨 Giọng Nam' : sampleGender === 'female' ? '👩 Giọng Nữ' : '🔍 Auto';
+        const engineLabel = elevenLabsApiKey ? '🌟 ElevenLabs 98%' : '🤖 OmniVoice Local';
         setTtsHistory(prev => [
           {
             id: data.file_id,
             text: ttsText.length > 50 ? ttsText.substring(0, 50) + '...' : ttsText,
-            voiceName: `🤖 OmniVoice (${genderLabel} - ${sampleFile.name})`,
+            voiceName: `${engineLabel} (${sampleFile.name})`,
             audioUrl: data.audio_url,
             time: new Date().toLocaleTimeString('vi-VN')
           },
@@ -505,7 +513,7 @@ function App() {
                   className={`chip-btn ${ttsMode === 'clone' ? 'selected' : ''}`}
                   onClick={() => setTtsMode('clone')}
                 >
-                  🤖 OmniVoice Nhái Giọng
+                  🎭 Nhái Giọng (File MP3 Mẫu)
                 </button>
               </div>
             </div>
@@ -620,6 +628,23 @@ function App() {
             {/* Mode 2: Voice Cloning (Sample MP3) */}
             {ttsMode === 'clone' && (
               <>
+                {/* ElevenLabs API Key Optional Input for 98% Accuracy */}
+                <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#10b981', fontWeight: '600', fontSize: '0.875rem' }}>
+                    🌟 ElevenLabs API Key (Tùy chọn - Giống giọng mẫu 98% chuẩn thần thái)
+                  </label>
+                  <input 
+                    type="password" 
+                    placeholder="Dán API Key ElevenLabs của bạn để đạt độ giống 98% (Để trống nếu dùng local)..." 
+                    value={elevenLabsApiKey}
+                    onChange={handleApiKeyChange}
+                    style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                    * Lấy API Key miễn phí tại <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" style={{ color: '#10b981', textDecoration: 'underline' }}>elevenlabs.io</a> (Dùng thử 10.000 ký tự).
+                  </span>
+                </div>
+
                 <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: '#38bdf8', fontWeight: '600', fontSize: '0.9rem' }}>
                     1. Upload File MP3 / WAV Giọng Đọc Mẫu (3 - 25 Giây)
@@ -673,7 +698,7 @@ function App() {
                   onClick={handleTTSClone}
                   disabled={ttsIsProcessing || !ttsText.trim() || !sampleFile}
                 >
-                  {ttsIsProcessing ? '🤖 OmniVoice AI Đang Nhái Giọng...' : '🤖 OmniVoice Nhái Giọng & Tạo Âm Thanh'}
+                  {ttsIsProcessing ? '🎭 AI Đang Nhái Giọng & Sinh Âm Thanh...' : '🎭 Nhái Giọng & Tạo Âm Thanh'}
                 </button>
               </>
             )}

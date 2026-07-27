@@ -90,6 +90,7 @@ async def clone_tts_voice(
     text: str = Form(...),
     language: str = Form("vi"),
     gender: str = Form("auto"),
+    api_key: str = Form(""),
     sample_file: UploadFile = File(...)
 ):
     if not text or not text.strip():
@@ -112,9 +113,10 @@ async def clone_tts_voice(
     
     from services.tts_local import clone_voice_from_sample
     try:
-        await clone_voice_from_sample(sample_path, text, output_path, language=language, gender=gender)
+        await clone_voice_from_sample(sample_path, text, output_path, language=language, gender=gender, api_key=api_key)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi nhái giọng nói: {str(e)}")
+
 
         
     return {
