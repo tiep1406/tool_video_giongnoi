@@ -628,22 +628,30 @@ function App() {
             {/* Mode 2: Voice Cloning (Sample MP3) */}
             {ttsMode === 'clone' && (
               <>
-                {/* ElevenLabs API Key Optional Input for 98% Accuracy */}
-                <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#10b981', fontWeight: '600', fontSize: '0.875rem' }}>
-                    🌟 ElevenLabs API Key (Tùy chọn - Giống giọng mẫu 98% chuẩn thần thái)
+                {/* Free Engine Banner */}
+                <div style={{ background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.4)', padding: '1rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
+                  <div style={{ color: '#a78bfa', fontWeight: '600', fontSize: '0.9rem', marginBottom: '4px' }}>
+                    🤖 Động Cơ Nhái Giọng OmniVoice (cosmichackerx/voice-cloner)
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+                    ✅ <b>Miễn Phí 100% - Không Giới Hạn Số Ký Tự - Không Cần Trả Phí</b>. Phân tích file mẫu MP3 và sinh ra giọng nói tiếng Việt chuẩn thần thái.
+                  </div>
+                </div>
+
+                {/* ElevenLabs API Key Optional Input */}
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px dashed rgba(16, 185, 129, 0.3)', padding: '0.85rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', color: '#10b981', fontWeight: '600', fontSize: '0.85rem' }}>
+                    🔑 ElevenLabs API Key (Tùy chọn nâng cao)
                   </label>
                   <input 
                     type="password" 
-                    placeholder="Dán API Key ElevenLabs của bạn để đạt độ giống 98% (Để trống nếu dùng local)..." 
+                    placeholder="Để trống nếu muốn dùng Động cơ Miễn phí ở trên..." 
                     value={elevenLabsApiKey}
                     onChange={handleApiKeyChange}
-                    style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                    style={{ padding: '6px 10px', fontSize: '0.8rem' }}
                   />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                    * Lấy API Key miễn phí tại <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" style={{ color: '#10b981', textDecoration: 'underline' }}>elevenlabs.io</a> (Dùng thử 10.000 ký tự).
-                  </span>
                 </div>
+
 
                 <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: '#38bdf8', fontWeight: '600', fontSize: '0.9rem' }}>

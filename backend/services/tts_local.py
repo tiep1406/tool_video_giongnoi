@@ -100,7 +100,16 @@ async def clone_voice_from_sample(sample_audio_path: str, text: str, output_path
         except Exception as e11:
             print(f"[ElevenLabs Engine] Warning ({e11}), falling back to local neural engine...")
 
-    # 2. Try OmniVoice Zero-Shot Neural Model
+    # 2. Try Free HuggingFace Voice Cloner Space (cosmichackerx/voice-cloner & k2-fsa/OmniVoice - 100% Free, No API Key, Unlimited)
+    try:
+        from services.hf_voice_cloner import clone_voice_hf_space
+        res_hf = clone_voice_hf_space(sample_audio_path, text, output_path, language=language)
+        if res_hf and os.path.exists(res_hf):
+            return res_hf
+    except Exception as hf_err:
+        print(f"[HF Voice Cloner Engine] Warning ({hf_err}), trying local weights...")
+
+    # 3. Try Local OmniVoice Model Weights
     try:
         from services.omnivoice_service import synthesize_omnivoice_clone
         res_path = synthesize_omnivoice_clone(sample_audio_path, text, output_path, language=language)
@@ -108,6 +117,7 @@ async def clone_voice_from_sample(sample_audio_path: str, text: str, output_path
             return res_path
     except Exception as omni_err:
         print(f"[OmniVoice Engine] Warning ({omni_err}), trying XTTS / Feature-Matching Engine...")
+
 
 
     # 2. Try Neural Zero-Shot XTTS Model if installed
