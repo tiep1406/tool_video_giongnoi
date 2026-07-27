@@ -2,14 +2,31 @@ import edge_tts
 import asyncio
 import os
 
-DEFAULT_VOICES = [
-    {"id": "vi-VN-HoaiMyNeural", "name": "Hoài My (Nữ - Tiếng Việt)", "lang": "vi-VN", "gender": "Female"},
-    {"id": "vi-VN-NamMinhNeural", "name": "Nam Minh (Nam - Tiếng Việt)", "lang": "vi-VN", "gender": "Male"},
-    {"id": "en-US-AvaNeural", "name": "Ava (Nữ - Tiếng Anh Mỹ)", "lang": "en-US", "gender": "Female"},
-    {"id": "en-US-AndrewNeural", "name": "Andrew (Nam - Tiếng Anh Mỹ)", "lang": "en-US", "gender": "Male"},
-    {"id": "en-US-EmmaNeural", "name": "Emma (Nữ - Tiếng Anh Mỹ)", "lang": "en-US", "gender": "Female"},
-    {"id": "ja-JP-NanamiNeural", "name": "Nanami (Nữ - Tiếng Nhật)", "lang": "ja-JP", "gender": "Female"},
-    {"id": "zh-CN-XiaoxiaoNeural", "name": "Xiaoxiao (Nữ - Tiếng Trung)", "lang": "zh-CN", "gender": "Female"}
+VIETNAMESE_CUSTOM_VOICES = [
+    {"id": "vi-VN-NamMinhNeural", "name": "🇻🇳 Nam Minh (Nam - Chuẩn Tiếng Việt)", "lang": "vi-VN", "gender": "Male", "rate": "+0%", "pitch": "+0Hz"},
+    {"id": "vi-VN-HoaiMyNeural", "name": "🇻🇳 Hoài My (Nữ - Chuẩn Tiếng Việt)", "lang": "vi-VN", "gender": "Female", "rate": "+0%", "pitch": "+0Hz"},
+    {"id": "vi-VN-NamMinh-ReviewPhim", "name": "🇻🇳 Nam Trầm Ấm (Review Phim / Phóng Sự)", "lang": "vi-VN", "gender": "Male", "real_voice": "vi-VN-NamMinhNeural", "rate": "-10%", "pitch": "-6Hz"},
+    {"id": "vi-VN-NamMinh-ThoiSu", "name": "🇻🇳 Nam Thời Sự (Bản Tin Chính Luận VTV)", "lang": "vi-VN", "gender": "Male", "real_voice": "vi-VN-NamMinhNeural", "rate": "+5%", "pitch": "+0Hz"},
+    {"id": "vi-VN-NamMinh-TheThao", "name": "🇻🇳 Nam Thể Thao / Công Nghệ (Sôi Nổi)", "lang": "vi-VN", "gender": "Male", "real_voice": "vi-VN-NamMinhNeural", "rate": "+20%", "pitch": "+2Hz"},
+    {"id": "vi-VN-NamMinh-QuangCao", "name": "🇻🇳 Nam Quảng Cáo / Trailer (Mạnh Mẽ)", "lang": "vi-VN", "gender": "Male", "real_voice": "vi-VN-NamMinhNeural", "rate": "+0%", "pitch": "-10Hz"},
+    {"id": "vi-VN-HoaiMy-TruyenCam", "name": "🇻🇳 Nữ Truyền Cảm (Đọc Truyện Đêm Khuya)", "lang": "vi-VN", "gender": "Female", "real_voice": "vi-VN-HoaiMyNeural", "rate": "-15%", "pitch": "-4Hz"},
+    {"id": "vi-VN-HoaiMy-TikTok", "name": "🇻🇳 Nữ TikTok Viral (Reels / Short Video)", "lang": "vi-VN", "gender": "Female", "real_voice": "vi-VN-HoaiMyNeural", "rate": "+20%", "pitch": "+4Hz"},
+    {"id": "vi-VN-HoaiMy-CoTich", "name": "🇻🇳 Nữ Kể Chuyện Cổ Tích (Thiếu Nhi)", "lang": "vi-VN", "gender": "Female", "real_voice": "vi-VN-HoaiMyNeural", "rate": "-8%", "pitch": "+6Hz"},
+    {"id": "vi-VN-HoaiMy-BanTin", "name": "🇻🇳 Nữ Phát Thanh Viên Truyền Hình", "lang": "vi-VN", "gender": "Female", "real_voice": "vi-VN-HoaiMyNeural", "rate": "+0%", "pitch": "+0Hz"},
+    
+    # Multilingual AI Voices that read Vietnamese fluently
+    {"id": "en-US-AndrewMultilingualNeural", "name": "🌐 Andrew AI (Nam - Multilingual Đọc Tiếng Việt)", "lang": "en-US", "gender": "Male"},
+    {"id": "en-US-AvaMultilingualNeural", "name": "🌐 Ava AI (Nữ - Multilingual Đọc Tiếng Việt)", "lang": "en-US", "gender": "Female"},
+    {"id": "en-US-BrianMultilingualNeural", "name": "🌐 Brian AI (Nam - Multilingual Đọc Tiếng Việt)", "lang": "en-US", "gender": "Male"},
+    {"id": "en-US-EmmaMultilingualNeural", "name": "🌐 Emma AI (Nữ - Multilingual Đọc Tiếng Việt)", "lang": "en-US", "gender": "Female"},
+    {"id": "de-DE-FlorianMultilingualNeural", "name": "🌐 Florian AI (Nam - Multilingual Đọc Tiếng Việt)", "lang": "de-DE", "gender": "Male"},
+    {"id": "fr-FR-VivienneMultilingualNeural", "name": "🌐 Vivienne AI (Nữ - Multilingual Đọc Tiếng Việt)", "lang": "fr-FR", "gender": "Female"},
+    {"id": "pt-BR-ThalitaMultilingualNeural", "name": "🌐 Thalita AI (Nữ - Multilingual Đọc Tiếng Việt)", "lang": "pt-BR", "gender": "Female"},
+    {"id": "de-DE-SeraphinaMultilingualNeural", "name": "🌐 Seraphina AI (Nữ - Multilingual Đọc Tiếng Việt)", "lang": "de-DE", "gender": "Female"},
+    {"id": "fr-FR-RemyMultilingualNeural", "name": "🌐 Remy AI (Nam - Multilingual Đọc Tiếng Việt)", "lang": "fr-FR", "gender": "Male"},
+    {"id": "it-IT-GiuseppeMultilingualNeural", "name": "🌐 Giuseppe AI (Nam - Multilingual Đọc Tiếng Việt)", "lang": "it-IT", "gender": "Male"},
+    {"id": "ko-KR-HyunsuMultilingualNeural", "name": "🌐 Hyunsu AI (Nam - Multilingual Đọc Tiếng Việt)", "lang": "ko-KR", "gender": "Male"},
+    {"id": "en-AU-WilliamMultilingualNeural", "name": "🌐 William AI (Nam - Multilingual Đọc Tiếng Việt)", "lang": "en-AU", "gender": "Male"}
 ]
 
 _cached_voices = []
@@ -20,9 +37,14 @@ async def fetch_all_voices():
         return _cached_voices
     try:
         raw_voices = await edge_tts.list_voices()
-        formatted = []
+        formatted = list(VIETNAMESE_CUSTOM_VOICES)
+        custom_ids = {v["id"] for v in VIETNAMESE_CUSTOM_VOICES}
+        
         for v in raw_voices:
             short_name = v.get("ShortName", "")
+            if short_name in custom_ids:
+                continue
+                
             gender = v.get("Gender", "")
             locale = v.get("Locale", "")
             
@@ -38,29 +60,33 @@ async def fetch_all_voices():
                 "gender": gender
             })
         
-        # Priority sort: Vietnamese first, English US second, then alphabetically
-        formatted.sort(key=lambda x: (
-            0 if "vi-" in x["lang"].lower() 
-            else (1 if "en-us" in x["lang"].lower() 
-            else (2 if "en-" in x["lang"].lower() else 3)),
-            x["name"]
-        ))
         _cached_voices = formatted
         return _cached_voices
     except Exception as e:
         print(f"Error fetching full voice list: {e}")
-        return DEFAULT_VOICES
+        return VIETNAMESE_CUSTOM_VOICES
 
 def get_available_voices():
     if _cached_voices and len(_cached_voices) > 0:
         return _cached_voices
-    return DEFAULT_VOICES
+    return VIETNAMESE_CUSTOM_VOICES
 
 async def generate_audio(text: str, output_path: str, voice: str = "vi-VN-HoaiMyNeural", rate: str = "+0%", pitch: str = "+0Hz"):
     if not voice:
         voice = "vi-VN-HoaiMyNeural"
-    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+        
+    # Check if voice is one of our Vietnamese custom preset IDs
+    custom = next((v for v in VIETNAMESE_CUSTOM_VOICES if v["id"] == voice), None)
+    if custom and "real_voice" in custom:
+        voice_id = custom["real_voice"]
+        rate = custom.get("rate", rate)
+        pitch = custom.get("pitch", pitch)
+    else:
+        voice_id = voice
+
+    communicate = edge_tts.Communicate(text, voice_id, rate=rate, pitch=pitch)
     await communicate.save(output_path)
     return output_path
+
 
 
