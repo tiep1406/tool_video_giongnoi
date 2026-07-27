@@ -43,6 +43,15 @@ function App() {
   const [sampleLanguage, setSampleLanguage] = useState('vi');
   const [sampleGender, setSampleGender] = useState('auto'); // 'auto' | 'male' | 'female'
   const [elevenLabsApiKey, setElevenLabsApiKey] = useState(() => localStorage.getItem('elevenlabs_api_key') || '');
+  
+  // Import Custom Voice State
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [customVoiceName, setCustomVoiceName] = useState('');
+  const [customVoiceFile, setCustomVoiceFile] = useState(null);
+  const [customVoiceGender, setCustomVoiceGender] = useState('male');
+  const [customVoiceLang, setCustomVoiceLang] = useState('vi');
+  const [isImportingVoice, setIsImportingVoice] = useState(false);
+
   const [ttsIsProcessing, setTtsIsProcessing] = useState(false);
   const [ttsAudioUrl, setTtsAudioUrl] = useState(null);
   const [ttsHistory, setTtsHistory] = useState([]);
@@ -87,6 +96,48 @@ function App() {
     const val = e.target.value;
     setElevenLabsApiKey(val);
     localStorage.setItem('elevenlabs_api_key', val);
+  };
+
+  const handleImportCustomVoice = async () => {
+    if (!customVoiceName.trim()) {
+      alert("Vui lòng nhập tên cho giọng nói mới!");
+      return;
+    }
+    if (!customVoiceFile) {
+      alert("Vui lòng tải lên file MP3/WAV âm thanh mẫu!");
+      return;
+    }
+
+    setIsImportingVoice(true);
+    const formData = new FormData();
+    formData.append('name', customVoiceName);
+    formData.append('gender', customVoiceGender);
+    formData.append('language', customVoiceLang);
+    formData.append('sample_file', customVoiceFile);
+
+    try {
+      const res = await fetch('http://localhost:8000/api/tts/import_custom_voice', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`🎉 Đã lưu thành công giọng "${customVoiceName}" vào danh sách!`);
+        setCustomVoiceName('');
+        setCustomVoiceFile(null);
+        setShowImportModal(false);
+        await fetchVoices();
+        if (data.voice?.id) {
+          setTtsVoice(data.voice.id);
+          setVideoVoice(data.voice.id);
+        }
+      } else {
+        alert("Lỗi import giọng: " + (data.detail || "Không rõ nguyên nhân"));
+      }
+    } catch (e) {
+      alert("Lỗi kết nối máy chủ khi import giọng.");
+    }
+    setIsImportingVoice(false);
   };
 
   const filteredVoices = voices.filter(v => 
@@ -638,21 +689,73 @@ function App() {
             {/* Mode 1: Standard TTS */}
             {ttsMode === 'standard' && (
               <>
-                {/* Presets */}
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Mẫu văn bản nhanh:</label>
-                  <div className="option-group">
-                    <button className="chip-btn" onClick={() => setTtsText("Chào mừng quý vị và các bạn đã đến với bản tin công nghệ mới nhất hôm nay. Chúng tôi sẽ cập nhật những thông tin HOT nhất về AI.")}>
-                      📰 Bản tin công nghệ
-                    </button>
-                    <button className="chip-btn" onClick={() => setTtsText("Ngày xửa ngày xưa, ở một vương quốc xa xôi, có một vị vua thông thái luôn chăm lo cho cuộc sống của nhân dân.")}>
-                      📖 Truyện cổ tích
-                    </button>
-                    <button className="chip-btn" onClick={() => setTtsText("Welcome to the advanced text to speech tool. You can choose natural voices and customize reading speed easily.")}>
-                      🌐 English Sample
+                {/* Import Custom Voice Banner */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', padding: '0.75rem 1rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '8px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#38bdf8' }}>➕ Thêm Giọng Nói Riêng Vào Danh Sách</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tải file MP3 bất kỳ để tạo giọng dùng mãi mãi trong menu</div>
+                  </div>
+                  <button 
+                    onClick={() => setShowImportModal(!showImportModal)}
+                    style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#38bdf8', color: '#0f172a', fontWeight: '600', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
+                  >
+                    {showImportModal ? 'Đóng Form' : '+ Import Giọng Mới'}
+                  </button>
+                </div>
+
+                {/* Import Modal / Form */}
+                {showImportModal && (
+                  <div style={{ background: 'rgba(15, 23, 42, 0.95)', border: '1px solid #38bdf8', padding: '1.25rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1rem', color: '#38bdf8', marginBottom: '0.75rem' }}>➕ Import File MP3 Giọng Đọc Mới</h3>
+                    
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Tên giọng nói (Hiển thị trong menu):</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ví dụ: Giọng Thầy Giáo Hùng, Giọng MC Huyền..." 
+                        value={customVoiceName}
+                        onChange={e => setCustomVoiceName(e.target.value)}
+                        style={{ padding: '8px', fontSize: '0.85rem' }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>File MP3 / WAV mẫu (3 - 15 giây):</label>
+                      <input 
+                        type="file" 
+                        accept="audio/*" 
+                        onChange={e => setCustomVoiceFile(e.target.files[0])}
+                        style={{ fontSize: '0.8rem' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Giới tính:</label>
+                        <select value={customVoiceGender} onChange={e => setCustomVoiceGender(e.target.value)} style={{ padding: '6px' }}>
+                          <option value="male">👨 Giọng Nam</option>
+                          <option value="female">👩 Giọng Nữ</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Ngôn ngữ phát âm:</label>
+                        <select value={customVoiceLang} onChange={e => setCustomVoiceLang(e.target.value)} style={{ padding: '6px' }}>
+                          <option value="vi">Tiếng Việt</option>
+                          <option value="en">Tiếng Anh</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={handleImportCustomVoice}
+                      disabled={isImportingVoice || !customVoiceName.trim() || !customVoiceFile}
+                      style={{ width: '100%', padding: '10px', background: '#10b981', color: '#fff', fontWeight: '600', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
+                    >
+                      {isImportingVoice ? '⏳ Đang Lưu Giọng Vào Dự Án...' : '💾 Lưu Giọng Nói Vào Dự Án Vĩnh Viễn'}
                     </button>
                   </div>
-                </div>
+                )}
 
                 {/* Input Text */}
                 <div style={{ marginBottom: '1.25rem' }}>

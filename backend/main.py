@@ -48,6 +48,44 @@ def get_tts_presets():
     from services.tts_presets import get_vietnamese_presets
     return {"status": "success", "presets": get_vietnamese_presets()}
 
+@app.post("/api/tts/import_custom_voice")
+async def import_custom_voice(
+    name: str = Form(...),
+    gender: str = Form("auto"),
+    language: str = Form("vi"),
+    sample_file: UploadFile = File(...)
+):
+    if not name or not name.strip():
+        raise HTTPException(status_code=400, detail="Tên giọng nói không được để trống")
+        
+    temp_dir = os.path.join("..", "data", "temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_path = os.path.join(temp_dir, f"temp_{uuid.uuid4().hex}.mp3")
+    
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(sample_file.file, buffer)
+        
+    from services.custom_voice_service import save_custom_voice_entry
+    try:
+        entry = save_custom_voice_entry(name=name, gender=gender, language=language, sample_file_path=temp_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi lưu giọng mới: {str(e)}")
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+                
+    return {"status": "success", "voice": entry}
+
+@app.delete("/api/tts/custom_voice/{voice_id}")
+def delete_custom_voice(voice_id: str):
+    from services.custom_voice_service import delete_custom_voice_entry
+    res = delete_custom_voice_entry(voice_id)
+    return {"status": "success", "deleted": res}
+
+
 @app.post("/api/tts/generate_preset")
 async def generate_preset_tts(request: PresetTTSRequest):
     if not request.text or not request.text.strip():

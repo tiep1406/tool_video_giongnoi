@@ -33,12 +33,16 @@ _cached_voices = []
 
 async def fetch_all_voices():
     global _cached_voices
-    if _cached_voices and len(_cached_voices) > 0:
-        return _cached_voices
+    try:
+        from services.custom_voice_service import load_custom_voices
+        user_voices = load_custom_voices()
+    except Exception:
+        user_voices = []
+
     try:
         raw_voices = await edge_tts.list_voices()
-        formatted = list(VIETNAMESE_CUSTOM_VOICES)
-        custom_ids = {v["id"] for v in VIETNAMESE_CUSTOM_VOICES}
+        formatted = list(user_voices) + list(VIETNAMESE_CUSTOM_VOICES)
+        custom_ids = {v["id"] for v in user_voices} | {v["id"] for v in VIETNAMESE_CUSTOM_VOICES}
         
         for v in raw_voices:
             short_name = v.get("ShortName", "")
@@ -64,7 +68,8 @@ async def fetch_all_voices():
         return _cached_voices
     except Exception as e:
         print(f"Error fetching full voice list: {e}")
-        return VIETNAMESE_CUSTOM_VOICES
+        return user_voices + VIETNAMESE_CUSTOM_VOICES
+
 
 def get_available_voices():
     if _cached_voices and len(_cached_voices) > 0:
@@ -75,7 +80,23 @@ async def generate_audio(text: str, output_path: str, voice: str = "vi-VN-HoaiMy
     if not voice:
         voice = "vi-VN-HoaiMyNeural"
         
-    # Check if voice is one of our Vietnamese custom preset IDs
+    # 1. Check if voice is a user-imported custom voice MP3
+    try:
+        from services.custom_voice_service import load_custom_voices
+        user_v = next((v for v in load_custom_voices() if v["id"] == voice), None)
+        if user_v and "sample_path" in user_v and os.path.exists(user_v["sample_path"]):
+            from services.tts_local import clone_voice_from_sample
+            return await clone_voice_from_sample(
+                user_v["sample_path"], 
+                text, 
+                output_path, 
+                language=user_v.get("lang", "vi"), 
+                gender=user_v.get("gender", "auto")
+            )
+    except Exception as e_user:
+        print(f"[Custom Voice Handler] Exception: {e_user}")
+
+    # 2. Check if voice is one of our Vietnamese custom preset IDs
     custom = next((v for v in VIETNAMESE_CUSTOM_VOICES if v["id"] == voice), None)
     if custom and "real_voice" in custom:
         voice_id = custom["real_voice"]
@@ -87,6 +108,7 @@ async def generate_audio(text: str, output_path: str, voice: str = "vi-VN-HoaiMy
     communicate = edge_tts.Communicate(text, voice_id, rate=rate, pitch=pitch)
     await communicate.save(output_path)
     return output_path
+
 
 
 
