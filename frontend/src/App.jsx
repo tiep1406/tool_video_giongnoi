@@ -56,6 +56,17 @@ function App() {
   const [ttsAudioUrl, setTtsAudioUrl] = useState(null);
   const [ttsHistory, setTtsHistory] = useState([]);
 
+  // Video Downloader State
+  const [dlUrl, setDlUrl] = useState('');
+  const [dlFormat, setDlFormat] = useState('best');
+  const [dlInfo, setDlInfo] = useState(null);
+  const [isFetchingInfo, setIsFetchingInfo] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [dlProgressMsg, setDlProgressMsg] = useState('');
+  const [downloadResult, setDownloadResult] = useState(null);
+  const [dlHistory, setDlHistory] = useState([]);
+
+
   const fetchHistory = async () => {
     try {
       const res = await fetch('http://localhost:8000/api/history');
@@ -413,6 +424,59 @@ function App() {
     setTtsIsProcessing(false);
   };
 
+  const handleFetchDlInfo = async () => {
+    if (!dlUrl || !dlUrl.trim()) {
+      alert("Vui lòng nhập đường dẫn video!");
+      return;
+    }
+    setIsFetchingInfo(true);
+    setDlInfo(null);
+    setDownloadResult(null);
+    try {
+      const res = await fetch('http://localhost:8000/api/downloader/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: dlUrl.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        setDlInfo(data);
+      } else {
+        alert("Lỗi: " + (data.detail || data.message || "Không thể lấy thông tin video"));
+      }
+    } catch (e) {
+      alert("Lỗi kết nối máy chủ backend.");
+    }
+    setIsFetchingInfo(false);
+  };
+
+  const handleStartDownload = async () => {
+    if (!dlUrl || !dlUrl.trim()) {
+      alert("Vui lòng nhập đường dẫn video!");
+      return;
+    }
+    setIsDownloading(true);
+    setDownloadResult(null);
+    setDlProgressMsg('Đang tiến hành tải xuống video và xử lý định dạng...');
+    try {
+      const res = await fetch('http://localhost:8000/api/downloader/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: dlUrl.trim(), format_choice: dlFormat })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        setDownloadResult(data);
+        setDlHistory(prev => [data, ...prev]);
+      } else {
+        alert("Lỗi tải video: " + (data.detail || data.message || "Không thể tải video từ link này"));
+      }
+    } catch (e) {
+      alert("Lỗi kết nối máy chủ backend khi tải video.");
+    }
+    setIsDownloading(false);
+  };
+
   return (
     <div className="min-h-screen p-8 animate-fade-in" style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Header */}
@@ -436,6 +500,12 @@ function App() {
           onClick={() => setActiveTab('tts')}
         >
           🎙️ Studio Giọng Nói Tiếng Việt & Đa Ngôn Ngữ
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'downloader' ? 'active' : ''}`}
+          onClick={() => setActiveTab('downloader')}
+        >
+          📥 Tải Video Từ Link (YouTube, TikTok, FB...)
         </button>
       </nav>
 
@@ -968,6 +1038,246 @@ function App() {
                       <span>{item.time}</span>
                     </div>
                     <audio controls src={item.audioUrl} style={{ width: '100%', height: '32px' }}></audio>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: Universal Video Downloader */}
+      {activeTab === 'downloader' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
+          {/* Main Download Panel */}
+          <div className="glass-panel" style={{ padding: '2rem' }}>
+            <h2 style={{ marginBottom: '0.5rem', fontSize: '1.4rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              📥 Tải Video Đa Nền Tảng Tự Động
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              Hỗ trợ dán link bất kỳ từ <strong>YouTube, TikTok, Facebook, Instagram, Twitter/X, Douyin, Bilibili, Vimeo...</strong>
+            </p>
+
+            {/* Input URL Bar */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--text-muted)' }}>
+                Đường dẫn Video (Video URL)
+              </label>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input 
+                    type="text" 
+                    placeholder="Dán đường dẫn video vào đây (ví dụ: https://www.youtube.com/watch?v=... hoặc TikTok/FB link)"
+                    value={dlUrl}
+                    onChange={e => setDlUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleFetchDlInfo(); }}
+                    style={{ paddingRight: '40px', fontSize: '0.95rem' }}
+                  />
+                  {dlUrl && (
+                    <button 
+                      onClick={() => { setDlUrl(''); setDlInfo(null); setDownloadResult(null); }}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', color: 'var(--text-muted)', padding: '4px', fontSize: '0.9rem' }}
+                      title="Xóa link"
+                    >
+                      ✖
+                    </button>
+                  )}
+                </div>
+
+                <button 
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      if (text) {
+                        setDlUrl(text);
+                      }
+                    } catch (err) {}
+                  }}
+                  style={{ background: 'rgba(255,255,255,0.08)', color: '#f8fafc', border: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}
+                  title="Dán từ Clipboard"
+                >
+                  📋 Dán
+                </button>
+
+                <button 
+                  className="btn-primary" 
+                  onClick={handleFetchDlInfo}
+                  disabled={isFetchingInfo || !dlUrl.trim()}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {isFetchingInfo ? '⌛ Đang lấy info...' : '🔍 Lấy Thông Tin'}
+                </button>
+              </div>
+            </div>
+
+            {/* Video Info Preview Card */}
+            {dlInfo && (
+              <div style={{ 
+                background: 'rgba(15, 23, 42, 0.8)', 
+                border: '1px solid rgba(59, 130, 246, 0.4)', 
+                borderRadius: '12px', 
+                padding: '1.25rem', 
+                marginBottom: '1.5rem',
+                display: 'flex',
+                gap: '1.25rem',
+                alignItems: 'center',
+                animation: 'fadeIn 0.3s ease-out'
+              }}>
+                {dlInfo.thumbnail ? (
+                  <img 
+                    src={dlInfo.thumbnail} 
+                    alt="Thumbnail" 
+                    style={{ width: '160px', height: '90px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)', flexShrink: 0 }} 
+                  />
+                ) : (
+                  <div style={{ width: '160px', height: '90px', background: 'rgba(0,0,0,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', flexShrink: 0 }}>
+                    🎬 No Preview
+                  </div>
+                )}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                    <span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#38bdf8', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600' }}>
+                      🌐 {dlInfo.extractor}
+                    </span>
+                    <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600' }}>
+                      ⏱️ {dlInfo.duration_formatted}
+                    </span>
+                  </div>
+
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: '600', color: '#f8fafc', marginBottom: '0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={dlInfo.title}>
+                    {dlInfo.title}
+                  </h3>
+
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    👤 Tác giả / Kênh: <strong style={{ color: '#e2e8f0' }}>{dlInfo.uploader}</strong>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Quality Options & Action */}
+            <div style={{ marginBottom: '1.5rem', background: 'rgba(0,0,0,0.2)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '600', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                🎯 Chọn Chất Lượng / Định Dạng Tải Về
+              </label>
+
+              <div className="option-group" style={{ marginBottom: '1.25rem' }}>
+                <button 
+                  className={`chip-btn ${dlFormat === 'best' ? 'selected' : ''}`}
+                  onClick={() => setDlFormat('best')}
+                >
+                  ✨ Cao Nhất (Gốc Best HD/4K)
+                </button>
+                <button 
+                  className={`chip-btn ${dlFormat === '1080p' ? 'selected' : ''}`}
+                  onClick={() => setDlFormat('1080p')}
+                >
+                  📺 Full HD (1080p)
+                </button>
+                <button 
+                  className={`chip-btn ${dlFormat === '720p' ? 'selected' : ''}`}
+                  onClick={() => setDlFormat('720p')}
+                >
+                  📱 HD (720p)
+                </button>
+                <button 
+                  className={`chip-btn ${dlFormat === '480p' ? 'selected' : ''}`}
+                  onClick={() => setDlFormat('480p')}
+                >
+                  ⚡ SD (480p)
+                </button>
+                <button 
+                  className={`chip-btn ${dlFormat === 'mp3' ? 'selected' : ''}`}
+                  onClick={() => setDlFormat('mp3')}
+                  style={{ borderColor: dlFormat === 'mp3' ? '#ec4899' : '', background: dlFormat === 'mp3' ? '#ec4899' : '' }}
+                >
+                  🎵 Chỉ Âm Thanh (MP3 Audio)
+                </button>
+              </div>
+
+              <button 
+                className="btn-primary" 
+                style={{ width: '100%', padding: '14px', fontSize: '1.05rem', fontWeight: '600', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)' }}
+                onClick={handleStartDownload}
+                disabled={isDownloading || !dlUrl.trim()}
+              >
+                {isDownloading ? '⏳ Đang Tải Video (Vui lòng chờ)...' : '📥 Tải Video Về Máy Server'}
+              </button>
+            </div>
+
+            {/* Downloading Progress Indicator */}
+            {isDownloading && (
+              <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px dashed #10b981', borderRadius: '12px', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🔄</div>
+                <p style={{ color: '#10b981', fontWeight: '600', marginBottom: '0.25rem' }}>Hệ thống đang tiến hành nạp & xử lý dữ liệu video...</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{dlProgressMsg}</p>
+              </div>
+            )}
+
+            {/* Download Result Panel */}
+            {downloadResult && (
+              <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', borderRadius: '12px', padding: '1.5rem', animation: 'fadeIn 0.4s ease-out' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <h3 style={{ color: '#10b981', fontWeight: '700', fontSize: '1.1rem', marginBottom: '0.25rem' }}>
+                      🎉 Đã Tải Video Thành Công!
+                    </h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      Kích thước file: <strong style={{ color: '#f8fafc' }}>{downloadResult.file_size}</strong> | Định dạng: <strong style={{ color: '#f8fafc' }}>{downloadResult.format_choice.toUpperCase()}</strong>
+                    </p>
+                  </div>
+
+                  <a 
+                    href={downloadResult.file_url} 
+                    download={downloadResult.file_name}
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{ background: '#10b981', color: 'white', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)' }}
+                  >
+                    💾 Tải File Trực Tiếp Về PC
+                  </a>
+                </div>
+
+                {downloadResult.format_choice === 'mp3' ? (
+                  <audio controls autoPlay src={downloadResult.file_url} style={{ width: '100%', marginTop: '0.5rem' }}></audio>
+                ) : (
+                  <video controls src={downloadResult.file_url} style={{ width: '100%', maxHeight: '420px', borderRadius: '8px', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}></video>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Download History Sidebar */}
+          <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              📜 Lịch sử tải video
+            </h3>
+
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {dlHistory.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  Chưa có video nào được tải trong phiên làm việc này.
+                </p>
+              ) : (
+                dlHistory.map((item, idx) => (
+                  <div key={idx} style={{ background: 'rgba(0,0,0,0.25)', padding: '0.85rem', borderRadius: '8px', marginBottom: '0.75rem', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.85rem', color: '#f8fafc', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.title}>
+                      {item.title}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>📦 {item.file_size}</span>
+                      <span>🎯 {item.format_choice}</span>
+                    </div>
+                    <a 
+                      href={item.file_url} 
+                      download={item.file_name} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      style={{ display: 'inline-block', width: '100%', textAlign: 'center', background: 'rgba(59, 130, 246, 0.2)', color: '#38bdf8', padding: '6px', borderRadius: '6px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: '500' }}
+                    >
+                      ⬇️ Tải xuống ({item.file_name.split('.').pop()})
+                    </a>
                   </div>
                 ))
               )}
