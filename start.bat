@@ -7,17 +7,13 @@ echo ========================================
 set "BASE_DIR=%~dp0"
 cd /d "%BASE_DIR%"
 
-:: Auto update code from Git repository
-echo [1/3] Updating code from Git (git pull origin main)...
-git pull origin main
-
 :: Set Model Cache Directories to Local Workspace
 set "HF_HOME=%BASE_DIR%backend\models"
 set "TORCH_HOME=%BASE_DIR%backend\models"
 set "TTS_HOME=%BASE_DIR%backend\models"
 
 :: Check and Install Backend Dependencies
-echo [2/3] Checking Backend Dependencies...
+echo [1/2] Checking Backend Dependencies...
 cd /d "%BASE_DIR%backend"
 if not exist ".venv" (
     echo Creating virtual environment...
@@ -32,7 +28,7 @@ echo Installing python dependencies...
 start "Backend API" cmd /c "cd /d "%BASE_DIR%backend" && set HF_HOME=%BASE_DIR%backend\models && set TORCH_HOME=%BASE_DIR%backend\models && set TTS_HOME=%BASE_DIR%backend\models && "%BASE_DIR%backend\.venv\Scripts\python.exe" -m uvicorn main:app --reload --port 8000"
 
 :: Check and Install Frontend Dependencies
-echo [3/3] Checking Frontend Dependencies...
+echo [2/2] Checking Frontend Dependencies...
 cd /d "%BASE_DIR%frontend"
 if not exist "node_modules" (
     echo Installing node modules...
