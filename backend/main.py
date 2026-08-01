@@ -36,6 +36,7 @@ class DownloadRequest(BaseModel):
     url: str
     format_choice: str = "best"
 
+import asyncio
 import uuid
 from services.crawler import extract_content
 from services.llm import generate_storyboard
@@ -45,21 +46,21 @@ def read_root():
     return {"status": "ok", "message": "AI Video Generator Backend is running"}
 
 @app.post("/api/downloader/info")
-def get_video_download_info(request: DownloadInfoRequest):
+async def get_video_download_info(request: DownloadInfoRequest):
     if not request.url or not request.url.strip():
         raise HTTPException(status_code=400, detail="Vui lòng nhập đường dẫn video (URL)")
     from services.downloader import get_video_info
-    res = get_video_info(request.url.strip())
+    res = await asyncio.to_thread(get_video_info, request.url.strip())
     if res.get("status") == "error":
         raise HTTPException(status_code=400, detail=res.get("message"))
     return res
 
 @app.post("/api/downloader/download")
-def download_video_endpoint(request: DownloadRequest):
+async def download_video_endpoint(request: DownloadRequest):
     if not request.url or not request.url.strip():
         raise HTTPException(status_code=400, detail="Vui lòng nhập đường dẫn video (URL)")
     from services.downloader import download_video
-    res = download_video(request.url.strip(), request.format_choice)
+    res = await asyncio.to_thread(download_video, request.url.strip(), request.format_choice)
     if res.get("status") == "error":
         raise HTTPException(status_code=500, detail=res.get("message"))
     return res
